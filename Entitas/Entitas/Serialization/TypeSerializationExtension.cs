@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
+#if DNXCORE50
+
+using System.Reflection;
+
+#endif
+
 namespace Entitas.Serialization {
 
     public static class TypeSerializationExtension {
@@ -15,7 +21,7 @@ namespace Entitas.Serialization {
             if (_builtInTypesToString.ContainsKey(type.FullName)) {
                 return _builtInTypesToString[type.FullName];
             }
-            if (type.IsGenericType) {
+            if (type.IsGenericType()) {
                 var genericMainType = type.FullName.Split('`')[0];
                 var genericArguments = type.GetGenericArguments().Select(argType => argType.ToCompilableString()).ToArray();
                 return genericMainType + "<" + string.Join(", ", genericArguments) + ">";
@@ -38,7 +44,8 @@ namespace Entitas.Serialization {
             if (_builtInTypesToString.ContainsKey(type.FullName)) {
                 return _builtInTypesToString[type.FullName];
             }
-            if (type.IsGenericType) {
+
+            if (type.IsGenericType()) {
                 var genericMainType = type.FullName.Split('`')[0];
                 var genericArguments = type.GetGenericArguments().Select(argType => argType.ToReadableString()).ToArray();
                 return genericMainType + "<" + string.Join(", ", genericArguments) + ">";
@@ -58,7 +65,11 @@ namespace Entitas.Serialization {
                 return type;
             }
 
+#if DNXCORE50
+            foreach (var assembly in Assembly.GetEntryAssembly().Modules) {
+#else
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+#endif
                 type = assembly.GetType(fullTypeName);
                 if (type != null) {
                     return type;

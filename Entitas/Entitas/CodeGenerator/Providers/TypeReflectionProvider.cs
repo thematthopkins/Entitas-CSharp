@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Entitas.Serialization;
 
+#if DNXCORE50
+using System.Reflection;
+#endif
+
 namespace Entitas.CodeGenerator {
     public class TypeReflectionProvider : ICodeGeneratorDataProvider {
 
@@ -22,13 +26,13 @@ namespace Entitas.CodeGenerator {
 
         public static ComponentInfo[] GetComponentInfos(Type[] types) {
             var infosFromComponents = types
-                .Where(type => !type.IsInterface)
-                .Where(type => !type.IsAbstract)
+                .Where(type => !type.IsInterface())
+                .Where(type => !type.IsAbstract())
                 .Where(type => type.GetInterfaces().Any(i => i.FullName == "Entitas.IComponent"))
                 .Select(type => CreateComponentInfo(type));
 
             var infosForNonComponents = types
-                .Where(type => !type.IsGenericType)
+                .Where(type => !type.IsGenericType())
                 .Where(type => !type.GetInterfaces().Any(i => i.FullName == "Entitas.IComponent"))
                 .Where(type => GetPools(type).Length > 0)
                 .SelectMany(type => CreateComponentInfosForClass(type));
@@ -75,7 +79,7 @@ namespace Entitas.CodeGenerator {
         }
 
         public static string[] GetPools(Type type) {
-            return Attribute.GetCustomAttributes(type)
+            return type.GetCustomAttributes()
                 .Where(attr => isTypeOrHasBaseType(attr.GetType(), "Entitas.CodeGenerator.PoolAttribute"))
                 .Select(attr => attr.GetType().GetField("poolName").GetValue(attr) as string)
                 .OrderBy(poolName => poolName)
@@ -83,19 +87,19 @@ namespace Entitas.CodeGenerator {
         }
 
         public static bool GetIsSingleEntity(Type type) {
-            return Attribute.GetCustomAttributes(type)
+            return type.GetCustomAttributes()
                 .Any(attr => attr.GetType().FullName == "Entitas.CodeGenerator.SingleEntityAttribute");
         }
 
         public static string GetSingleComponentPrefix(Type type) {
-            var attr = Attribute.GetCustomAttributes(type)
+            var attr = type.GetCustomAttributes()
                 .SingleOrDefault(a => isTypeOrHasBaseType(a.GetType(), "Entitas.CodeGenerator.CustomPrefixAttribute"));
 
             return attr == null ? "is" : (string)attr.GetType().GetField("prefix").GetValue(attr);
         }
 
         public static string[] GetComponentNames(Type type) {
-            var attr = Attribute.GetCustomAttributes(type)
+            var attr = type.GetCustomAttributes()
                 .SingleOrDefault(a => isTypeOrHasBaseType(a.GetType(), "Entitas.CodeGenerator.CustomComponentNameAttribute"));
 
             if (attr == null) {
@@ -108,12 +112,12 @@ namespace Entitas.CodeGenerator {
         }
 
         public static bool GetGenerateMethods(Type type) {
-            return Attribute.GetCustomAttributes(type)
+            return type.GetCustomAttributes()
                 .All(attr => attr.GetType().FullName != "Entitas.CodeGenerator.DontGenerateAttribute");
         }
 
         public static bool GetGenerateIndex(Type type) {
-            var attr = Attribute.GetCustomAttributes(type)
+            var attr = type.GetCustomAttributes()
                 .SingleOrDefault(a => isTypeOrHasBaseType(a.GetType(), "Entitas.CodeGenerator.DontGenerateAttribute"));
 
             return attr == null || (bool)attr.GetType().GetField("generateIndex").GetValue(attr);
@@ -133,7 +137,7 @@ namespace Entitas.CodeGenerator {
                 if (t.FullName == fullTypeName) {
                     return true;
                 }
-                t = t.BaseType;
+                t = t.BaseType();
             }
 
             return false;
