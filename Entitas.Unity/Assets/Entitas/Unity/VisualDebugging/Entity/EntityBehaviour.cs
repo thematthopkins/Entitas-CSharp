@@ -4,8 +4,8 @@ namespace Entitas.Unity.VisualDebugging {
 
     [ExecuteInEditMode]
     public class EntityBehaviour : MonoBehaviour {
-        public Pool pool { get { return _pool; } }
 
+        public Pool pool { get { return _pool; } }
         public Entity entity { get { return _entity; } }
 
         Pool _pool;
